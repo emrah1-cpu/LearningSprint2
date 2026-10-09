@@ -1,0 +1,33 @@
+/* Optional Node.js tests for the pure teaching-model function in index.html. */
+'use strict';
+const fs = require('node:fs');
+const assert = require('node:assert/strict');
+const vm = require('node:vm');
+const html = fs.readFileSync(require('node:path').join(__dirname,'index.html'),'utf8');
+const script = html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
+assert.ok(script, 'Could not find inline JavaScript');
+const pureSource = script.slice(0,script.indexOf('  const ui ='));
+const context = vm.createContext({});
+vm.runInContext(pureSource + '\nthis.runModel = calculateFixedWidth;',context);
+const compute = (width,signed,a,b,operation='add') => context.runModel(width,signed,BigInt(a),BigInt(b),operation);
+let checked=0;
+const check = (name,width,signed,a,b,op,stored,overflowed) => {
+  const r=compute(width,signed,a,b,op);
+  assert.equal(r.stored,BigInt(stored),`${name}: stored`);
+  assert.equal(r.overflowed,overflowed,`${name}: overflow`);
+  assert.ok(r.raw >= 0n && r.raw < (1n << BigInt(width)),`${name}: raw in range`);
+  checked++;
+};
+check('signed 8-bit positive overflow',8,true,120,20,'add',-116,true);
+check('unsigned 8-bit wraparound',8,false,255,1,'add',0,true);
+check('unsigned 8-bit underflow',8,false,0,1,'subtract',255,true);
+check('signed 8-bit in range',8,true,8,12,'add',20,false);
+check('signed 4-bit overflow',4,true,7,1,'add',-8,true);
+check('signed 4-bit negative underflow',4,true,-8,1,'subtract',7,true);
+check('signed 16-bit underflow',16,true,-32768,1,'subtract',32767,true);
+check('unsigned 32-bit overflow',32,false,4294967295,1,'add',0,true);
+check('signed 32-bit overflow',32,true,2147483647,1,'add',-2147483648,true);
+check('unsigned 32-bit in range',32,false,100,30,'subtract',70,false);
+assert.throws(()=>compute(8,true,200,1,'add'),/range/);
+assert.throws(()=>compute(5,true,1,1,'add'),/width/);
+console.log(`PASS: ${checked} arithmetic scenarios and 2 invalid-input checks.`);

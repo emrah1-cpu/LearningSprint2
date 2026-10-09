@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="An interactive fixed-width integer overflow teaching module.">
+  <title>Overflow Lab | Learn Integer Overflow</title>
+  <style>
+    :root { color-scheme: dark; --bg:#0b1020; --panel:#131d30; --panel2:#18253b; --line:#2d3c55; --text:#f0f5ff; --muted:#a4b3cc; --cyan:#6edff0; --green:#7bebb7; --orange:#ffbc77; --red:#ff8c91; }
+    * { box-sizing: border-box; }
+    body { margin:0; font: 16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; color:var(--text); background: radial-gradient(ellipse at 13% 3%,#192c47 0,transparent 35%), var(--bg); }
+    main { width:min(1100px,calc(100% - 36px)); margin:0 auto; padding:44px 0 56px; }
+    .eyebrow { color:var(--cyan); text-transform:uppercase; font-size:.79rem; font-weight:800; letter-spacing:.19em; }
+    h1 { margin:.3rem 0 .7rem; font-size:clamp(2.2rem,5vw,3.8rem); letter-spacing:-.05em; line-height:1.07; }
+    h2 { font-size:1.22rem; margin:0 0 1rem; letter-spacing:-.02em; }
+    p { margin:.45rem 0; }
+    .intro { max-width:720px; color:var(--muted); font-size:1.06rem; margin-bottom:28px; }
+    .panel { background:rgba(19,29,48,.96); border:1px solid var(--line); box-shadow:0 16px 48px #0002; border-radius:18px; padding:24px; }
+    .layout { display:grid; grid-template-columns:minmax(280px,.92fr) minmax(0,1.25fr); gap:18px; align-items:start; }
+    .fields { display:grid; grid-template-columns:1fr 1fr; gap:15px; }
+    .field { min-width:0; }
+    label { display:block; font-size:.85rem; font-weight:750; color:var(--muted); margin-bottom:7px; }
+    input,select,button { font:inherit; }
+    input,select { width:100%; min-height:46px; padding:9px 12px; border-radius:10px; border:1px solid #3c5072; background:#0c1627; color:var(--text); }
+    input:focus-visible,select:focus-visible,button:focus-visible { outline:2px solid var(--cyan); outline-offset:2px; }
+    .field-full { grid-column:1/-1; }
+    .presets { display:flex; flex-wrap:wrap; gap:8px; margin-top:18px; }
+    button { border-radius:999px; background:var(--panel2); color:var(--text); border:1px solid #455b7a; padding:9px 14px; cursor:pointer; font-size:.87rem; font-weight:700; }
+    button:hover { background:#25405e; }
+    .hint { color:var(--muted); font-size:.86rem; margin-top:16px; }
+    .status { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; align-items:center; margin-bottom:14px; }
+    .pill { display:inline-block; font-size:.79rem; font-weight:800; border-radius:999px; padding:5px 12px; border:1px solid; }
+    .pill.over { color:var(--red); background:#502332; border-color:#a95163; }
+    .pill.safe { color:var(--green); background:#153a34; border-color:#347d65; }
+    .metric-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+    .metric { background:#0b1627; border:1px solid #283c59; border-radius:12px; padding:13px; min-width:0; }
+    .metric .name { color:var(--muted); font-size:.77rem; font-weight:750; }
+    .metric .value { font-size:clamp(1.15rem,2vw,1.55rem); font-weight:800; letter-spacing:-.025em; overflow-wrap:anywhere; margin-top:4px; font-variant-numeric:tabular-nums; }
+    .metric.feature { border-color:#426d83; }
+    .metric.feature .value { color:var(--cyan); }
+    .section { margin-top:18px; }
+    .ranges { background:#0d1929; border-left:3px solid var(--cyan); padding:12px 16px; border-radius:7px; color:#dce8fb; }
+    .ranges strong { color:var(--cyan); }
+    .error { color:#ffc4c6; background:#4f2434; border:1px solid #985168; padding:12px; border-radius:9px; margin-top:13px; }
+    .wide { margin-top:18px; }
+    .bits { display:flex; flex-wrap:wrap; gap:3px; margin-top:7px; }
+    .bits .group { display:flex; gap:3px; margin-right:8px; }
+    .bits .digit { width:27px; height:33px; border:1px solid #405475; background:#0b1729; display:grid; place-items:center; border-radius:5px; font:700 .9rem ui-monospace,SFMono-Regular,Consolas,monospace; }
+    .bits .digit.one { color:var(--cyan); background:#19344b; border-color:#437d9a; }
+    .bit-row { margin:0 0 14px; }
+    .bit-row .title { font-size:.85rem; font-weight:800; color:var(--muted); }
+    .bit-row.result .digit.one { color:var(--orange); background:#3d302a; border-color:#8a6851; }
+    .steps { counter-reset:steps; padding:0; margin:0; list-style:none; }
+    .steps li { counter-increment:steps; margin:0 0 14px; display:flex; gap:11px; color:#dce6f5; }
+    .steps li::before { content:counter(steps); flex:none; width:26px; height:26px; display:grid; place-items:center; border-radius:50%; background:#233c55; color:var(--cyan); font-size:.8rem; font-weight:800; }
+    .track { position:relative; margin:24px 9px 12px; height:8px; border-radius:100px; background:linear-gradient(90deg,#426f8b,#6bd4bd); }
+    .marker { position:absolute; top:-8px; width:24px; height:24px; background:#ffe6ba; border:4px solid #0c1829; box-shadow:0 0 0 2px #f7c279; border-radius:50%; transform:translateX(-50%); left:50%; transition:left .18s ease; }
+    .scale { display:flex; justify-content:space-between; gap:10px; color:var(--muted); font:700 .8rem ui-monospace,SFMono-Regular,Consolas,monospace; }
+    .footnote { font-size:.88rem; color:var(--muted); margin-top:12px; }
+    footer { margin-top:25px; color:var(--muted); font-size:.88rem; }
+    code { color:#a9ebf4; overflow-wrap:anywhere; }
+    @media (max-width:760px) { .layout { grid-template-columns:1fr; } main { padding-top:28px; } .panel { padding:19px; } }
+    @media (max-width:440px) { .metric-grid { grid-template-columns:1fr; } .bits .digit { width:22px; height:28px; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">SE/CprE 4210 · Learning Sprint #2 · Educational Demo</div>
+    <h1>Overflow Lab<span style="color:var(--cyan)">.</span></h1>
+    <p class="intro">What happens when a calculation needs more bits than a computer has available? Change the inputs below and watch a fixed-width integer wrap around.</p>
+  </header>
+  <div class="layout">
+    <section class="panel" aria-labelledby="controls-heading">
+      <h2 id="controls-heading">1. Set up your calculation</h2>
+      <div class="fields">
+        <div class="field"><label for="width">Integer width</label><select id="width"><option value="4">4 bits</option><option value="8" selected>8 bits</option><option value="16">16 bits</option><option value="32">32 bits</option></select></div>
+        <div class="field"><label for="mode">Interpretation</label><select id="mode"><option value="signed" selected>Signed (two's complement)</option><option value="unsigned">Unsigned</option></select></div>
+        <div class="field"><label for="a">First integer (A)</label><input id="a" type="text" inputmode="numeric" value="120" autocomplete="off" spellcheck="false"></div>
+        <div class="field"><label for="b">Second integer (B)</label><input id="b" type="text" inputmode="numeric" value="20" autocomplete="off" spellcheck="false"></div>
+        <div class="field field-full"><label for="operation">Arithmetic operation</label><select id="operation"><option value="add" selected>Add (A + B)</option><option value="subtract">Subtract (A − B)</option></select></div>
+      </div>
+      <div class="presets" aria-label="Load example calculations">
+        <button type="button" data-preset="signed">Signed overflow: 120 + 20</button>
+        <button type="button" data-preset="unsigned">Unsigned wrap: 255 + 1</button>
+        <button type="button" data-preset="underflow">Unsigned underflow: 0 − 1</button>
+        <button type="button" data-preset="safe">No overflow: 8 + 12</button>
+      </div>
+      <p class="hint">Enter whole decimal numbers within the selected type's range. All calculations happen locally in your browser.</p>
+      <div id="valid-range" class="ranges" aria-live="polite"></div>
+      <div id="error" class="error" role="alert" hidden></div>
+    </section>
+    <section class="panel" aria-labelledby="result-heading">
+      <div class="status"><h2 id="result-heading" style="margin:0">2. See what gets stored</h2><span id="overflow-badge" class="pill over" aria-live="polite">Overflow</span></div>
+      <div id="results" aria-live="polite">
+        <div class="metric-grid">
+          <div class="metric"><div class="name">Mathematical result</div><div class="value" id="math-result">140</div></div>
+          <div class="metric feature"><div class="name">Stored integer value</div><div class="value" id="stored-result">−116</div></div>
+          <div class="metric"><div class="name">Raw unsigned bit value</div><div class="value" id="raw-result">140</div></div>
+          <div class="metric"><div class="name">Hexadecimal bits</div><div class="value" id="hex-result">0x8C</div></div>
+        </div>
+        <div class="section"><div style="font-weight:750;margin-bottom:7px">Where the stored result lands in the type's range</div><div class="track"><span id="marker" class="marker"></span></div><div class="scale"><span id="min-tick">−128</span><span id="max-tick">127</span></div></div>
+        <p class="footnote" id="summary"></p>
+      </div>
+    </section>
+  </div>
+  <section class="panel wide" aria-labelledby="bits-heading">
+    <h2 id="bits-heading">3. Inspect the actual bits</h2>
+    <div id="bit-rows"></div>
+    <p class="footnote">Every group represents four bits. The bit patterns are identical whether they are interpreted as signed or unsigned; only their numerical meaning changes.</p>
+  </section>
+  <section class="panel wide" aria-labelledby="explanation-heading">
+    <h2 id="explanation-heading">4. Understand the process</h2>
+    <ol class="steps" id="explanation"></ol>
+    <p class="footnote"><strong>Important C-language distinction:</strong> Unsigned arithmetic wraps modulo 2<sup>n</sup> in C. Signed overflow in C is <em>undefined behavior</em>; this demo intentionally shows fixed-width, two's-complement wraparound as a hardware concept, not a promise about how every C program behaves.</p>
+  </section>
+  <footer>Educational simulation only — no exploitation, network activity, or external dependencies.</footer>
+</main>
+<script>
+  'use strict';
+
+  // This is a pure function so its mathematical behavior can also be unit tested.
+  function calculateFixedWidth(width, signed, a, b, operation) {
+    if (![4, 8, 16, 32].includes(width)) throw new RangeError('Unsupported integer width');
+    if (typeof a !== 'bigint' || typeof b !== 'bigint') throw new TypeError('Operands must be BigInt');
+    if (!['add', 'subtract'].includes(operation)) throw new RangeError('Unsupported operation');
+    const modulus = 1n << BigInt(width);
+    const half = modulus >> 1n;
+    const min = signed ? -half : 0n;
+    const max = signed ? half - 1n : modulus - 1n;
+    if (a < min || a > max || b < min || b > max) throw new RangeError('Operand is outside the selected range');
+    const mathematical = operation === 'add' ? a + b : a - b;
+    const raw = ((mathematical % modulus) + modulus) % modulus;
+    const stored = signed && raw >= half ? raw - modulus : raw;
+    const overflowed = mathematical < min || mathematical > max;
+    return { width, signed, a, b, operation, modulus, min, max, mathematical, raw, stored, overflowed };
+  }
+
+  const ui = Object.fromEntries(['width','mode','a','b','operation','valid-range','error','overflow-badge','results','math-result','stored-result','raw-result','hex-result','min-tick','max-tick','marker','summary','bit-rows','explanation'].map(id => [id,document.getElementById(id)]));
+  const valueString = value => value.toString();
+  const binaryOf = (value, width) => BigInt.asUintN(width, value).toString(2).padStart(width,'0');
+
+  function renderBits(container, label, value, width, isResult) {
+    const row = document.createElement('div');
+    row.className = 'bit-row' + (isResult ? ' result' : '');
+    const caption = document.createElement('div');
+    caption.className = 'title';
+    caption.textContent = label + ': ' + valueString(value);
+    row.appendChild(caption);
+    const bits = document.createElement('div');
+    bits.className = 'bits';
+    const str = binaryOf(value,width);
+    for (let i = 0; i < str.length; i += 4) {
+      const group = document.createElement('div');
+      group.className = 'group';
+      for (const bit of str.slice(i,i+4)) {
+        const cell = document.createElement('span');
+        cell.className = 'digit' + (bit === '1' ? ' one' : '');
+        cell.textContent = bit;
+        group.appendChild(cell);
+      }
+      bits.appendChild(group);
+    }
+    row.appendChild(bits);
+    container.appendChild(row);
+  }
+
+  function refresh() {
+    const width = Number(ui.width.value);
+    const signed = ui.mode.value === 'signed';
+    const modulus = 1n << BigInt(width);
+    const min = signed ? -(modulus / 2n) : 0n;
+    const max = signed ? modulus / 2n - 1n : modulus - 1n;
+    ui['valid-range'].textContent = `Allowed ${signed ? 'signed' : 'unsigned'} ${width}-bit integers: ${min} through ${max}`;
+    try {
+      const parse = (str) => {
+        if (!/^-?\d+$/.test(str.trim())) throw new Error('Please enter valid whole decimal numbers for A and B.');
+        return BigInt(str.trim());
+      };
+      const outcome = calculateFixedWidth(width,signed,parse(ui.a.value),parse(ui.b.value),ui.operation.value);
+      ui.error.hidden = true;
+      ui.results.hidden = false;
+      ui['overflow-badge'].hidden = false;
+      const status = ui['overflow-badge'];
+      status.className = 'pill ' + (outcome.overflowed ? 'over' : 'safe');
+      status.textContent = outcome.overflowed ? (outcome.mathematical < min ? 'Underflow / wraparound' : 'Overflow / wraparound') : 'No overflow';
+      ui['math-result'].textContent = valueString(outcome.mathematical);
+      ui['stored-result'].textContent = valueString(outcome.stored);
+      ui['raw-result'].textContent = valueString(outcome.raw);
+      ui['hex-result'].textContent = '0x' + outcome.raw.toString(16).toUpperCase().padStart(width/4,'0');
+      ui['min-tick'].textContent = valueString(min);
+      ui['max-tick'].textContent = valueString(max);
+      const fraction = Number(outcome.stored - min) / Number(max - min);
+      ui.marker.style.left = `${Math.max(0,Math.min(100,fraction * 100))}%`;
+      ui.summary.textContent = outcome.overflowed ? `The mathematical answer ${outcome.mathematical} falls outside ${min} to ${max}. Keeping only ${width} bits stores ${outcome.stored}.` : `The mathematical answer ${outcome.mathematical} fits within ${width} bits, so the stored value is unchanged.`;
+      ui['bit-rows'].replaceChildren();
+      renderBits(ui['bit-rows'],'A',outcome.a,width,false);
+      renderBits(ui['bit-rows'],'B',outcome.b,width,false);
+      renderBits(ui['bit-rows'],'Stored result',outcome.stored,width,true);
+      const steps = [
+        `Represent A = ${outcome.a} and B = ${outcome.b} using ${width} binary bits each.`,
+        `Compute ${outcome.a} ${outcome.operation === 'add' ? '+' : '−'} ${outcome.b} = ${outcome.mathematical} using ordinary mathematical integers.`,
+        `Keep the lower ${width} bits (modulo ${outcome.modulus}); the unsigned bit pattern has value ${outcome.raw}.`,
+        `${signed ? 'Interpret the highest bit as the two\'s-complement sign bit' : 'Interpret all bits as an unsigned integer'}: the stored result is ${outcome.stored}. ${outcome.overflowed ? 'That differs from the exact mathematical answer, revealing wraparound.' : 'It matches the exact mathematical answer.'}`
+      ];
+      ui.explanation.replaceChildren(...steps.map(step => {const item=document.createElement('li');item.textContent=step;return item;}));
+    } catch (err) {
+      ui.error.textContent = err instanceof RangeError ? `Values must be inside the selected range (${min} to ${max}).` : err.message;
+      ui.error.hidden = false;
+      ui.results.hidden = true;
+      ui['overflow-badge'].hidden = true;
+      ui['bit-rows'].replaceChildren();
+      ui.explanation.replaceChildren();
+    }
+  }
+
+  document.querySelectorAll('input,select').forEach(field => field.addEventListener('input',refresh));
+  const presets = {
+    signed: {width:'8',mode:'signed',a:'120',b:'20',operation:'add'},
+    unsigned: {width:'8',mode:'unsigned',a:'255',b:'1',operation:'add'},
+    underflow: {width:'8',mode:'unsigned',a:'0',b:'1',operation:'subtract'},
+    safe: {width:'8',mode:'signed',a:'8',b:'12',operation:'add'}
+  };
+  document.querySelectorAll('[data-preset]').forEach(button => button.addEventListener('click',() => {
+    const example = presets[button.dataset.preset];
+    for (const [key,val] of Object.entries(example)) ui[key].value = val;
+    refresh();
+  }));
+  refresh();
+</script>
+</body>
+</html>
