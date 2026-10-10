@@ -46,9 +46,9 @@ If you have Node.js installed, run `node test.js`. The app itself does not requi
 
 ## Sprint team
 
-- Group: **[fill in HackerTeam number]**
-- Contributors: **[fill in members and contributions]**
-- Repository: **[paste GitHub repository URL after creating it]**
+- Group: Hackerteam # 22
+- Contributors: Emrah Sadikov -- Application development, testing, documentation
+- Repository: https://github.com/emrah1-cpu/LearningSprint2
 
 ## Reflection
 
